@@ -1,103 +1,203 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+const matrixHill = [
+    [3, 3],
+    [2, 5],
+]
+const inverseMatrixHill = [
+    [15, 17],
+    [20, 9],
+]
+
+function removerAcentos(texto: string): string {
+    return texto.normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+const PADDING_CHAR = '*'
+
+function encryptHill(plainText: string, matrix: number[][]): string {
+    const cleanedText = removerAcentos(plainText)
+        .replace(/[^A-Z]/g, '')
+        .toUpperCase()
+
+    const paddedText =
+        cleanedText.length % 2 === 0 ? cleanedText : cleanedText + PADDING_CHAR
+
+    const textNumbers = paddedText
+        .split('')
+        .map((char) => char.charCodeAt(0) - 65)
+
+    const encryptedNumbers = []
+
+    for (let i = 0; i < textNumbers.length; i += 2) {
+        const a = textNumbers[i]
+        const b = textNumbers[i + 1]
+
+        encryptedNumbers.push(
+            (matrix[0][0] * a + matrix[0][1] * b) % 26,
+            (matrix[1][0] * a + matrix[1][1] * b) % 26
+        )
+    }
+
+    return encryptedNumbers.map((num) => String.fromCharCode(num + 65)).join('')
+}
+
+function decryptHill(cipherText: string, inverseMatrix: number[][]): string {
+    const cleanedText = cipherText.replace(/[^A-Z]/g, '').toUpperCase()
+
+    const textNumbers = cleanedText
+        .split('')
+        .map((char) => char.charCodeAt(0) - 65)
+
+    const decryptedNumbers = []
+
+    for (let i = 0; i < textNumbers.length; i += 2) {
+        const a = textNumbers[i]
+        const b = textNumbers[i + 1] || 0
+
+        decryptedNumbers.push(
+            (inverseMatrix[0][0] * a + inverseMatrix[0][1] * b) % 26,
+            (inverseMatrix[1][0] * a + inverseMatrix[1][1] * b) % 26
+        )
+    }
+
+    let result = decryptedNumbers
+        .map((num) => String.fromCharCode(((num + 26) % 26) + 65))
+        .join('')
+
+    if (result.endsWith(PADDING_CHAR)) {
+        result = result.slice(0, -1)
+    }
+
+    return result
+}
+
+function encryptVigenere(text: string, key: string): string {
+    const cleanedText = removerAcentos(text)
+        .replace(/[^A-Z]/g, '')
+        .toUpperCase()
+    const cleanedKey = key.replace(/[^A-Z]/g, '').toUpperCase()
+
+    if (cleanedKey.length === 0) return cleanedText
+
+    let result = ''
+
+    for (let i = 0; i < cleanedText.length; i++) {
+        const textChar = cleanedText.charCodeAt(i) - 65
+        const keyChar = cleanedKey.charCodeAt(i % cleanedKey.length) - 65
+        result += String.fromCharCode(((textChar + keyChar) % 26) + 65)
+    }
+
+    return result
+}
+
+function decryptVigenere(text: string, key: string): string {
+    const cleanedText = text.replace(/[^A-Z]/g, '').toUpperCase()
+    const cleanedKey = key.replace(/[^A-Z]/g, '').toUpperCase()
+
+    if (cleanedKey.length === 0) return cleanedText
+
+    let result = ''
+
+    for (let i = 0; i < cleanedText.length; i++) {
+        const textChar = cleanedText.charCodeAt(i) - 65
+        const keyChar = cleanedKey.charCodeAt(i % cleanedKey.length) - 65
+        result += String.fromCharCode(((textChar - keyChar + 26) % 26) + 65)
+    }
+
+    return result
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    const [text, setText] = useState('')
+    const [key, setKey] = useState('')
+    const [cipherType, setCipherType] = useState('hill')
+    const [output, setOutput] = useState('')
+    const [isEncrypted, setIsEncrypted] = useState(false)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    const handleEncrypt = () => {
+        if (!text) return
+
+        if (cipherType === 'hill') {
+            setOutput(encryptHill(text, matrixHill))
+        } else {
+            if (!key) {
+                alert('Por favor, insira uma chave para a cifra de Vigenère')
+                return
+            }
+            setOutput(encryptVigenere(text, key))
+        }
+        setIsEncrypted(true)
+    }
+
+    const handleDecrypt = () => {
+        if (!text) return
+
+        if (cipherType === 'hill') {
+            setOutput(decryptHill(text, inverseMatrixHill))
+        } else {
+            if (!key) {
+                alert('Por favor, insira uma chave para a cifra de Vigenère')
+                return
+            }
+            setOutput(decryptVigenere(text, key))
+        }
+        setIsEncrypted(false)
+    }
+
+    return (
+        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            <Card className="p-6 w-96">
+                <CardHeader>
+                    <CardTitle>Criptografia</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Input
+                        placeholder="Texto"
+                        value={text}
+                        onChange={(e) => setText(e.target.value.toUpperCase())}
+                    />
+                    {cipherType === 'vigenere' && (
+                        <Input
+                            placeholder="Chave"
+                            value={key}
+                            onChange={(e) =>
+                                setKey(e.target.value.toUpperCase())
+                            }
+                        />
+                    )}
+                    <select
+                        className="w-full p-2 border rounded"
+                        onChange={(e) => setCipherType(e.target.value)}
+                    >
+                        <option value="hill">Hill</option>
+                        <option value="vigenere">Vigenère</option>
+                    </select>
+                    <div className="flex space-x-2">
+                        <Button onClick={handleEncrypt} className="flex-1">
+                            Criptografar
+                        </Button>
+                        <Button
+                            onClick={handleDecrypt}
+                            variant="outline"
+                            className="flex-1"
+                        >
+                            Descriptografar
+                        </Button>
+                    </div>
+                    {output && (
+                        <div className="mt-4 p-3 border rounded bg-gray-200">
+                            <p className="font-medium">Resultado:</p>
+                            <p className="break-all">{output}</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
 }
